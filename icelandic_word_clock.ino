@@ -53,7 +53,8 @@
 #define BUTTON_THRESHOLD 50
 #define BUTTON_DECRIMENT_THRESHOLD 600
 
-#define TRIGGER_THRESHOLD 50
+#define PROGRAM_DIGIT_DISPLAY 200
+#define PROGRAM_DIGIT_DISPLAY_INBETWEEN 200
 
 /* VARIABLE DECLERATIONS */
 
@@ -77,15 +78,16 @@ int mode = MODE_OPERATE;
 
 unsigned long mode_pressdown_time = 0;
 unsigned long incriment_pressdown_time = 0;
-
-int program_first_digit = 0;
-int program_second_digit = 0;
-
 bool mode_button_down = false;
 bool incriment_button_down = false;
 bool mode_release = false;
 bool incriment_release = false;
 bool decriment_release = false;
+
+int program_first_digit = 0;
+int program_second_digit = 0;
+unsigned long program_first_digit_display_time = 0;
+unsigned long program_second_digit_display_time = 0;
 
 bool master_loop_break = false;
 
@@ -117,58 +119,43 @@ void setup() {
 
   Wire.begin();// start IC2 interface for communicating with Chronodot RTC module
   clear_ESOC_bit();
-  //set_rtc_date(6, 27, 9, 14); //COME BACK TO THIS, MAKE SURE YOU UNDERSTAND THE YEAR ASPECT OF THINGS BEFORE GIVING THIS TO KATA!!!!!!!!!!!!!!!
+  //set_rtc_date(6, 27, 9, 14);
   //set_rtc_time(5, 50, 1);
 
   get_time();
   get_date();
   clear_leds();
+  clear_rainbow();
+  write_leds();
   //word_test();
 }
 
 void loop() {
-  //get_date();
-  //get_time();
-  //fake_time_fastforward();
   //print_rtc_datetime();
 
   clear_leds();
   check_buttons();
-  //MINUTUR;
-  //IN;
-  //YFIR;
-  //THRJU;
-  //NIU;
-  //FJOGUR;
-  //set_time_pins();
-  //write_leds();
 
   if(incriment_pressdown_time < 0 || mode_pressdown_time < 0) {
     Serial.println(incriment_pressdown_time);
   }
   if(mode != MODE_OPERATE) {
-    //program_time();
-    Serial.println(mode);
+    program_time();
+    set_program_time_pins();
+    write_leds();
   } else {
-    clear_rainbow();
+    get_date();
+    get_time();
     master_loop_break = false;
+
     set_time_pins();
     write_leds();
-
-    fake_time_fastforward();
-    delay(1000);
-    //word_test();
-    //rainbowCycle(20);
-    Serial.println(minutes);
+    //fake_time_fastforward();
   }
 
   //Serial.println(millis() - last_loop);
-  //Serial.println(Display1, BIN);
-  //Serial.println(Display2, BIN);
-  //Serial.println(Display3, BIN);
 
   last_loop = millis();
-  //delay(3000);
   cleanup_buttons();
 
 }
@@ -196,6 +183,8 @@ void check_buttons() {
     if(incriment_pressdown_time > 0) {
       if(now - incriment_pressdown_time > BUTTON_DECRIMENT_THRESHOLD) {
         decriment_release = true;
+        program_first_digit_display_time = 0;
+        program_second_digit_display_time = 0;
       }
       if(now - incriment_pressdown_time > BUTTON_THRESHOLD && !decriment_release) {
         incriment_release = true;
@@ -209,6 +198,8 @@ void check_buttons() {
     mode = generic_incriment(mode, 1, MODE_OPERATE, MODE_SET_MINUTE);
     master_loop_break = true;
     mode_release = false;
+    set_rtc_date(1, date, month, year);
+    set_rtc_time(seconds, minutes, hours);
   }
   if(incriment_release) {
     //Serial.println("INCRIMENT");
@@ -232,6 +223,52 @@ void fake_time_fastforward() {
   }
 }
 
+void number_to_pin(int number) { // primarily used for programming the time
+
+  switch(number) {
+    case 0:
+    IN;
+      break;
+    case 1:
+      EITT;
+      break;
+    case 2:
+      TVO;
+      break;
+    case 3:
+      THRJU;
+      break;
+    case 4:
+      FJOGUR;
+      break;
+    case 5:
+      L_FIMM;
+      break;
+    case 6:
+      SEX;
+      break;
+    case 7:
+      SJO;
+      break;
+    case 8:
+      ATTA;
+      break;
+    case 9:
+      NIU;
+      break;
+    case 10:
+      L_TIU;
+      break;
+    case 11:
+      ELLEFU;
+      break;
+    case 12:
+      TOLF;
+      break;
+  }
+
+}
+
 void program_time() {
 
   int incriment_amount = 0;
@@ -245,21 +282,29 @@ void program_time() {
 
   if(mode == MODE_SET_YEAR) {
     year = generic_incriment(year, incriment_amount, 0, 99);
+    program_first_digit = year / 10;
+    program_second_digit = year % 10;
   }
 
   if(mode == MODE_SET_MONTH) {
     month = generic_incriment(month, incriment_amount, 1, 12);
     seconds = 0;
+    program_first_digit = month / 10;
+    program_second_digit = month % 10;
   }
 
   if(mode == MODE_SET_DATE) {
     date = generic_incriment(date, incriment_amount, 1, 31);
     seconds = 0;
+    program_first_digit = date / 10;
+    program_second_digit = date % 10;
   }
 
   if(mode == MODE_SET_HOUR) {
     hours = hour_incriment(hours, incriment_amount);
     seconds = 0;
+    program_first_digit = hours / 10;
+    program_second_digit = hours % 10;
   }
 
   if(mode == MODE_SET_MINUTE && incriment_amount != 0) {
@@ -274,12 +319,53 @@ void program_time() {
     if(minutes == 59 && incriment_amount < 0) {
       minutes = 55;
     }
+    seconds = 0;
+  }
+
+  if(mode == MODE_SET_MINUTE) {
+    program_first_digit = minutes / 10;
+    program_second_digit = minutes % 10;
   }
 
 }
 
 void set_program_time_pins() {
+  unsigned int now = millis();
 
+  if(program_first_digit_display_time == 0) {
+    program_first_digit_display_time = now;
+    Serial.println("first digit");
+  }
+  number_to_pin(program_first_digit);
+
+  if(program_first_digit_display_time > 0) {
+
+    if(now - program_first_digit_display_time > PROGRAM_DIGIT_DISPLAY) {
+      clear_leds();
+      Serial.println("in between");
+    }
+
+    if(now - program_first_digit_display_time > PROGRAM_DIGIT_DISPLAY + PROGRAM_DIGIT_DISPLAY_INBETWEEN) {
+
+      if(program_second_digit_display_time == 0) {
+        program_second_digit_display_time = now;
+      }
+
+      number_to_pin(program_second_digit);
+      Serial.println("second digit");
+
+      if(now - program_second_digit_display_time > PROGRAM_DIGIT_DISPLAY) {
+        clear_leds();
+        Serial.println("after second");
+
+        if(now - program_second_digit_display_time > PROGRAM_DIGIT_DISPLAY + (PROGRAM_DIGIT_DISPLAY_INBETWEEN * 3.5)) {
+          program_first_digit_display_time = 0;
+          program_second_digit_display_time = 0;
+        }
+      }
+    }
+
+  }
 }
 
 void set_time_pins() {
@@ -402,6 +488,8 @@ void set_time_pins() {
   }
 }
 
+
+
 void clear_leds() {
   Display1 = 0;
   Display2 = 0;
@@ -523,12 +611,10 @@ void word_test() {
 
 void write_leds() {
 
-  //digitalWrite(OUTPUT_PIN, LOW);
   digitalWrite(LATCH_PIN, LOW);
   shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, Display3);
   shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, Display2);
   shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, Display1);
-  //digitalWrite(OUTPUT_PIN, HIGH);
   digitalWrite(LATCH_PIN, HIGH);
 }
 
