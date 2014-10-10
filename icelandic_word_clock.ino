@@ -6,43 +6,45 @@
 
 
 /* DEFINITIONS */
+#define MODE_INTERRUPT 0
+#define INCRIMENT_INTERRUPT 1
 
-#define MODE_PIN 6
-#define INCRIMENT_PIN 7
+#define MODE_PIN 2
+#define INCRIMENT_PIN 3
 
 #define bday_strip_size 14
 #define bday_strip_pin 12
 
 //regsiter pins
-#define CD4094_CLOCK    8
-#define CD4094_DATA     9
-#define CD4094_STROBE   10
-#define CD4094_OUTPUT   11
+#define CLOCK_PIN    8
+#define DATA_PIN     9
+#define LATCH_PIN   10
+#define OUTPUT_PIN   11
 
 // the following are the pin definitons for the ground of the respective words
-#define HALF Display1=Display1 | (1<<0)
-#define H_TIU Display1=Display1 | (1<<1)
-#define TUTTUGU Display1=Display1 | (1<<2)
-#define OG Display1=Display1 | (1<<3)
-#define H_FIMM Display1=Display1 | (1<<5) 
-#define FIMMTAN Display1=Display1 | (1<<4)
-#define MINUTUR Display1=Display1 | (1<<6) 
+#define HALF Display1=Display1 | (1<<1)
+#define YFIR Display1=Display1 | (1<<2) // not wired in right order
+#define H_TIU Display1=Display1 | (1<<3)
+#define TUTTUGU Display1=Display1 | (1<<4)
+#define OG Display1=Display1 | (1<<5)
+#define H_FIMM Display1=Display1 | (1<<6) 
+#define FIMMTAN Display1=Display1 | (1<<7)
 
-#define IN Display2=Display2 | (1<<0)
-#define YFIR Display2=Display2 | (1<<1)
-#define THRJU Display2=Display2 | (1<<2)
-#define ELLEFU Display2=Display2 | (1<<3)
-#define ATTA Display2=Display2 | (1<<4)
-#define EITT Display2=Display2 | (1<<5)
-#define NIU Display2=Display2 | (1<<6)
+#define EITT Display2=Display2 | (1<<1)
+#define NIU Display2=Display2 | (1<<2)
+#define ATTA Display2=Display2 | (1<<3)
+#define THRJU Display2=Display2 | (1<<4)
+#define ELLEFU Display2=Display2 | (1<<5)
+#define MINUTUR Display2=Display2 | (1<<6) // not wired in right order
+#define IN Display2=Display2 | (1<<7)
 
-#define SJO Display3=Display3 | (1<<0) 
-#define SEX Display3=Display3 | (1<<1)
+#define TVO Display3=Display3 | (1<<1)
 #define TOLF Display3=Display3 | (1<<2)
-#define TVO Display3=Display3 | (1<<3)
-#define L_TIU Display3=Display3 | (1<<4)
-#define L_FIMM Display3=Display3 | (1<<5)
-#define FJOGUR Display3=Display3 | (1<<6)
+#define SEX Display3=Display3 | (1<<3)
+#define SJO Display3=Display3 | (1<<4)
+#define FJOGUR Display3=Display3 | (1<<5)
+#define L_FIMM Display3=Display3 | (1<<6)
+#define L_TIU Display3=Display3 | (1<<7)
 
 #define MODE_OPERATE 0
 #define MODE_SET_YEAR 1
@@ -53,6 +55,8 @@
 
 #define BUTTON_THRESHOLD 50
 #define BUTTON_DECRIMENT_THRESHOLD 600
+
+#define TRIGGER_THRESHOLD 50
 
 /* VARIABLE DECLERATIONS */
 
@@ -73,27 +77,40 @@ byte Display3 = B00000001;
 
 //
 int mode = MODE_OPERATE;
-unsigned int mode_pressdown_time = 0;
-unsigned int incriment_pressdown_time = 0;
+
+unsigned long mode_pressdown_time = 0;
+unsigned long incriment_pressdown_time = 0;
+unsigned long last_mode_interrupt = 0;
+unsigned long last_incriment_interrupt = 0;
+
+bool mode_button_down = false;
+bool incriment_button_down = false;
 bool mode_release = false;
 bool incriment_release = false;
 bool decriment_release = false;
 
+bool master_loop_break = false;
+
+unsigned long last_loop = 0;
 
 Adafruit_NeoPixel bday_strip = Adafruit_NeoPixel(bday_strip_size, bday_strip_pin, NEO_GRB + NEO_KHZ800);
 
 void setup() {
-  pinMode(CD4094_CLOCK, OUTPUT);
-  pinMode(CD4094_STROBE, OUTPUT);
-  pinMode(CD4094_DATA, OUTPUT);
-  pinMode(CD4094_OUTPUT, OUTPUT);
+  // shift register stuff
+  pinMode(CLOCK_PIN, OUTPUT);
+  pinMode(LATCH_PIN, OUTPUT);
+  pinMode(DATA_PIN, OUTPUT);
+  pinMode(OUTPUT_PIN, OUTPUT);
 
+  // programming pins
   pinMode(MODE_PIN, INPUT);
   pinMode(INCRIMENT_PIN, INPUT);
   digitalWrite(MODE_PIN, HIGH);
   digitalWrite(INCRIMENT_PIN, HIGH);
+  //attachInterrupt(MODE_INTERRUPT, interrupt_mode, CHANGE);
+  //attachInterrupt(INCRIMENT_INTERRUPT, interrupt_incriment, CHANGE);
 
-  digitalWrite(CD4094_OUTPUT, HIGH);
+  digitalWrite(OUTPUT_PIN, LOW);
 
   bday_strip.begin();
   bday_strip.setBrightness(100);
@@ -128,21 +145,31 @@ void loop() {
   //FJOGUR;
   //set_time_pins();
   //write_leds();
-  //rainbowCycle(20);
 
   if(incriment_pressdown_time < 0 || mode_pressdown_time < 0) {
     Serial.println(incriment_pressdown_time);
   }
   if(mode != MODE_OPERATE) {
-    program_time();
+    //program_time();
+    Serial.println(mode);
+  } else {
+    clear_rainbow();
+    master_loop_break = false;
+    set_time_pins();
+    write_leds();
+    //word_test();
+    //rainbowCycle(20);
+    //Serial.println("rainbow cycle");
   }
+
+  //Serial.println(millis() - last_loop);
   //Serial.println(Display1, BIN);
   //Serial.println(Display2, BIN);
   //Serial.println(Display3, BIN);
 
-  cleanup_buttons();
-
+  last_loop = millis();
   //delay(3000);
+  cleanup_buttons();
 
 }
 
@@ -180,12 +207,14 @@ void check_buttons() {
   if(mode_release) {
     Serial.println("MODE CHANGE");
     mode = generic_incriment(mode, 1, MODE_OPERATE, MODE_SET_MINUTE);
+    master_loop_break = true;
+    mode_release = false;
   }
   if(incriment_release) {
-    Serial.println("INCRIMENT");
+    //Serial.println("INCRIMENT");
   }
   if(decriment_release) {
-    Serial.println("DECRIMENT");
+    //Serial.println("DECRIMENT");
   }
 
 }
@@ -201,6 +230,32 @@ void fake_time_fastforward() {
   if(minutes == 0) {
     hours = hour_incriment(hours, 1);
   }
+}
+
+void interrupt_mode() {
+  //Serial.println("interrupt");
+  unsigned long interrupt_time = millis();
+  if(interrupt_time - last_mode_interrupt > TRIGGER_THRESHOLD) {
+    if(digitalRead(MODE_PIN) == LOW && !mode_button_down) {
+      mode_button_down = true;
+    } else {
+      mode_button_down = false;
+    }
+    check_buttons();
+  }
+
+  last_mode_interrupt = interrupt_time;
+  return;
+}
+
+void interrupt_incriment() {
+  if(digitalRead(INCRIMENT_PIN) == LOW) {
+    incriment_button_down = true;
+  } else {
+    incriment_button_down = false;
+  }
+
+  check_buttons();
 }
 
 void program_time() {
@@ -372,15 +427,128 @@ void clear_leds() {
   Display3 = 0;
 }
 
+void word_test() {
+  int word_wait = 200;
+
+  Serial.println("begin word test");
+
+  clear_leds();
+  HALF;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  H_TIU;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  TUTTUGU;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  OG;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  H_FIMM;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  FIMMTAN;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  MINUTUR;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  IN;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  YFIR;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  THRJU;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  ELLEFU;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  ATTA;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  EITT;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  NIU;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  SJO;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  SEX;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  TOLF;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  TVO;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  L_TIU;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  L_FIMM;
+  write_leds();
+  delay(word_wait);
+
+  clear_leds();
+  FJOGUR;
+  write_leds();
+  delay(word_wait);
+
+  Serial.println("end word test");
+}
+
 void write_leds() {
 
-  //digitalWrite(CD4094_OUTPUT, LOW);
-  digitalWrite(CD4094_STROBE, LOW);
-  shiftOut(CD4094_DATA, CD4094_CLOCK, MSBFIRST, Display3);
-  shiftOut(CD4094_DATA, CD4094_CLOCK, MSBFIRST, Display2);
-  shiftOut(CD4094_DATA, CD4094_CLOCK, MSBFIRST, Display1);
-  //digitalWrite(CD4094_OUTPUT, HIGH);
-  digitalWrite(CD4094_STROBE, HIGH);
+  //digitalWrite(OUTPUT_PIN, LOW);
+  digitalWrite(LATCH_PIN, LOW);
+  shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, Display3);
+  shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, Display2);
+  shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, Display1);
+  //digitalWrite(OUTPUT_PIN, HIGH);
+  digitalWrite(LATCH_PIN, HIGH);
 }
 
 int hour_incriment(int working_hour, int incriment) {
