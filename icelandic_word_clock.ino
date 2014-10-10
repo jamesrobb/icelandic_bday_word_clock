@@ -27,8 +27,8 @@
 #define H_TIU Display1=Display1 | (1<<3)
 #define TUTTUGU Display1=Display1 | (1<<4)
 #define OG Display1=Display1 | (1<<5)
-#define H_FIMM Display1=Display1 | (1<<6) 
-#define FIMMTAN Display1=Display1 | (1<<7)
+#define FIMMTAN Display1=Display1 | (1<<6)
+#define H_FIMM Display1=Display1 | (1<<7) 
 
 #define EITT Display2=Display2 | (1<<1)
 #define NIU Display2=Display2 | (1<<2)
@@ -83,6 +83,9 @@ unsigned long incriment_pressdown_time = 0;
 unsigned long last_mode_interrupt = 0;
 unsigned long last_incriment_interrupt = 0;
 
+int program_first_digit = 0;
+int program_second_digit = 0;
+
 bool mode_button_down = false;
 bool incriment_button_down = false;
 bool mode_release = false;
@@ -126,7 +129,8 @@ void setup() {
 
   get_time();
   get_date();
-  //minutes = 38;
+  clear_leds();
+  //word_test();
 }
 
 void loop() {
@@ -157,9 +161,12 @@ void loop() {
     master_loop_break = false;
     set_time_pins();
     write_leds();
+
+    fake_time_fastforward();
+    delay(1000);
     //word_test();
     //rainbowCycle(20);
-    //Serial.println("rainbow cycle");
+    Serial.println(minutes);
   }
 
   //Serial.println(millis() - last_loop);
@@ -304,6 +311,10 @@ void program_time() {
 
 }
 
+void set_program_time_pins() {
+
+}
+
 void set_time_pins() {
   if(minutes > 4 && minutes < 10) {
     H_FIMM;
@@ -372,6 +383,9 @@ void set_time_pins() {
   }
 
   switch(working_hour) {
+    case 0:
+      TOLF;
+      break;
     case 1:
       EITT;
       break;
@@ -453,12 +467,12 @@ void word_test() {
   delay(word_wait);
 
   clear_leds();
-  H_FIMM;
+  FIMMTAN;
   write_leds();
   delay(word_wait);
 
   clear_leds();
-  FIMMTAN;
+  H_FIMM;
   write_leds();
   delay(word_wait);
 
