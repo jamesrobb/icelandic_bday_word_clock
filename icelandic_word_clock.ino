@@ -6,9 +6,6 @@
 
 
 /* DEFINITIONS */
-#define MODE_INTERRUPT 0
-#define INCRIMENT_INTERRUPT 1
-
 #define MODE_PIN 2
 #define INCRIMENT_PIN 3
 
@@ -80,8 +77,6 @@ int mode = MODE_OPERATE;
 
 unsigned long mode_pressdown_time = 0;
 unsigned long incriment_pressdown_time = 0;
-unsigned long last_mode_interrupt = 0;
-unsigned long last_incriment_interrupt = 0;
 
 int program_first_digit = 0;
 int program_second_digit = 0;
@@ -110,8 +105,6 @@ void setup() {
   pinMode(INCRIMENT_PIN, INPUT);
   digitalWrite(MODE_PIN, HIGH);
   digitalWrite(INCRIMENT_PIN, HIGH);
-  //attachInterrupt(MODE_INTERRUPT, interrupt_mode, CHANGE);
-  //attachInterrupt(INCRIMENT_INTERRUPT, interrupt_incriment, CHANGE);
 
   digitalWrite(OUTPUT_PIN, LOW);
 
@@ -237,32 +230,6 @@ void fake_time_fastforward() {
   if(minutes == 0) {
     hours = hour_incriment(hours, 1);
   }
-}
-
-void interrupt_mode() {
-  //Serial.println("interrupt");
-  unsigned long interrupt_time = millis();
-  if(interrupt_time - last_mode_interrupt > TRIGGER_THRESHOLD) {
-    if(digitalRead(MODE_PIN) == LOW && !mode_button_down) {
-      mode_button_down = true;
-    } else {
-      mode_button_down = false;
-    }
-    check_buttons();
-  }
-
-  last_mode_interrupt = interrupt_time;
-  return;
-}
-
-void interrupt_incriment() {
-  if(digitalRead(INCRIMENT_PIN) == LOW) {
-    incriment_button_down = true;
-  } else {
-    incriment_button_down = false;
-  }
-
-  check_buttons();
 }
 
 void program_time() {
