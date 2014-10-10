@@ -119,19 +119,17 @@ void setup() {
 
   Wire.begin();// start IC2 interface for communicating with Chronodot RTC module
   clear_ESOC_bit();
-  //set_rtc_date(6, 27, 9, 14);
-  //set_rtc_time(5, 50, 1);
 
   get_time();
   get_date();
   clear_leds();
   clear_rainbow();
   write_leds();
-  //word_test();
+  word_test();
 }
 
 void loop() {
-  //print_rtc_datetime();
+  print_rtc_datetime();
 
   clear_leds();
   check_buttons();
@@ -140,6 +138,7 @@ void loop() {
     Serial.println(incriment_pressdown_time);
   }
   if(mode != MODE_OPERATE) {
+    clear_rainbow();
     program_time();
     set_program_time_pins();
     write_leds();
@@ -150,12 +149,16 @@ void loop() {
 
     set_time_pins();
     write_leds();
+
+    if((year == 14 && month == 12 && date == 24) || (month == 4 && date == 3)) {
+      rainbow_cycle(2);
+    }
+
     //fake_time_fastforward();
   }
 
   //Serial.println(millis() - last_loop);
-
-  last_loop = millis();
+  //last_loop = millis();
   cleanup_buttons();
 
 }
@@ -196,10 +199,15 @@ void check_buttons() {
   if(mode_release) {
     Serial.println("MODE CHANGE");
     mode = generic_incriment(mode, 1, MODE_OPERATE, MODE_SET_MINUTE);
+    
     master_loop_break = true;
     mode_release = false;
+
     set_rtc_date(1, date, month, year);
-    set_rtc_time(seconds, minutes, hours);
+    set_rtc_time(0, minutes, hours);
+
+    program_first_digit_display_time = 0;
+    program_second_digit_display_time = 0;
   }
   if(incriment_release) {
     //Serial.println("INCRIMENT");
