@@ -8,14 +8,25 @@ void rainbow_cycle(uint8_t wait) {
 			bday_strip.setPixelColor(i, wheel(((i * 50 / bday_strip_size) + j) & 255));
 			delayMicroseconds(550);
 
+			// checks to see if break variable is set so we can exit and go into programming mode
 			check_buttons();
 			if(master_loop_break) {
 				return;
 			}
+			//
 		}
+
 
 		bday_strip.show();
 		delay(wait);
+		
+		// possibly an unneccesary hack, allows time to update while this function is running
+		get_date();
+		get_time();
+
+		set_time_pins();
+		write_leds();
+		// end hack
 	}
 
 }
