@@ -119,6 +119,8 @@ void setup() {
 
   Wire.begin();// start IC2 interface for communicating with Chronodot RTC module
   clear_ESOC_bit();
+  //set_rtc_date(1, 12, 10, 14);
+  //set_rtc_time(0, 25, 0);
 
   get_time();
   get_date();
@@ -129,6 +131,8 @@ void setup() {
 }
 
 void loop() {
+  bool birthday_condition = false;
+
   print_rtc_datetime();
 
   clear_leds();
@@ -150,8 +154,26 @@ void loop() {
     set_time_pins();
     write_leds();
 
-    if((year == 14 && month == 12 && date == 24) || (month == 4 && date == 3)) {
-      rainbow_cycle(2);
+    // determine if we want to turn on birthday lights. first is just a general test, second is for illumination on xmas eve, third is for actual birthday
+    if(year == 14) {
+      if(hours % 2 == 0) {
+        birthday_condition = true;
+      }
+      if(month == 12 && day > 23) {
+        birthday_condition = false;
+      }
+    }
+    if(year == 14 && month == 12 && date == 24) {
+      birthday_condition = true;
+    }
+    if(month == 4 && date == 3) {
+      birthday_condition = true;
+    }
+
+    if(birthday_condition) {
+      rainbow_cycle(5);
+    } else {
+      clear_rainbow();
     }
 
     //fake_time_fastforward();
@@ -231,7 +253,7 @@ void fake_time_fastforward() {
   }
 }
 
-void number_to_pin(int number) { // primarily used for programming the time
+void number_to_pin(int number) { // primarily used when programming/setting the time
 
   switch(number) {
     case 0:
@@ -486,7 +508,7 @@ void set_time_pins() {
   }
 
   if ((minutes < 5) || (minutes > 29 && minutes < 35)) {
-    //
+    // do nothing here
   } else {
     if(minutes < 30) {
      YFIR;
@@ -505,7 +527,7 @@ void clear_leds() {
 }
 
 void word_test() {
-  int word_wait = 200;
+  int word_wait = 150;
 
   Serial.println("begin word test");
 
