@@ -18,6 +18,10 @@
 #define LATCH_PIN   10
 #define OUTPUT_PIN   11
 
+//manual PWM pins
+#define KLUKKAN_PIN 5
+#define ER_PIN 6
+
 // the following are the pin definitons for the ground of the respective words
 #define HALF Display1=Display1 | (1<<1)
 #define YFIR Display1=Display1 | (1<<2) // not wired in right order
@@ -49,6 +53,7 @@
 #define MODE_SET_DATE 3
 #define MODE_SET_HOUR 4
 #define MODE_SET_MINUTE 5
+#define MODE_TEST_BDAY 6
 
 #define BUTTON_THRESHOLD 50
 #define BUTTON_DECRIMENT_THRESHOLD 600
@@ -100,15 +105,17 @@ void setup() {
   pinMode(CLOCK_PIN, OUTPUT);
   pinMode(LATCH_PIN, OUTPUT);
   pinMode(DATA_PIN, OUTPUT);
+
+  // PWN pins
   pinMode(OUTPUT_PIN, OUTPUT);
+  pinMode(KLUKKAN_PIN, OUTPUT);
+  pinMode(ER_PIN, OUTPUT);
 
   // programming pins
   pinMode(MODE_PIN, INPUT);
   pinMode(INCRIMENT_PIN, INPUT);
   digitalWrite(MODE_PIN, HIGH);
   digitalWrite(INCRIMENT_PIN, HIGH);
-
-  digitalWrite(OUTPUT_PIN, LOW);
 
   bday_strip.begin();
   bday_strip.setBrightness(100);
@@ -126,6 +133,7 @@ void setup() {
   get_date();
   clear_leds();
   clear_rainbow();
+  set_brightness();
   write_leds();
   word_test();
 }
@@ -139,13 +147,18 @@ void loop() {
   check_buttons();
 
   if(incriment_pressdown_time < 0 || mode_pressdown_time < 0) {
-    Serial.println(incriment_pressdown_time);
+    //Serial.println(incriment_pressdown_time);
   }
   if(mode != MODE_OPERATE) {
-    clear_rainbow();
     program_time();
-    set_program_time_pins();
+    if(mode != MODE_TEST_BDAY) {
+      clear_rainbow();
+      set_program_time_pins();
+    } else {
+      clear_leds();
+    }
     write_leds();
+    //Serial.println(mode);
   } else {
     get_date();
     get_time();
@@ -159,7 +172,7 @@ void loop() {
       if(hours % 2 == 0) {
         birthday_condition = true;
       }
-      if(month == 12 && day > 23) {
+      if(month == 12 && date > 23) {
         birthday_condition = false;
       }
     }
@@ -182,6 +195,7 @@ void loop() {
   //Serial.println(millis() - last_loop);
   //last_loop = millis();
   cleanup_buttons();
+  set_brightness();
 
 }
 
@@ -220,7 +234,7 @@ void check_buttons() {
 
   if(mode_release) {
     Serial.println("MODE CHANGE");
-    mode = generic_incriment(mode, 1, MODE_OPERATE, MODE_SET_MINUTE);
+    mode = generic_incriment(mode, 1, MODE_OPERATE, MODE_TEST_BDAY);
     
     master_loop_break = true;
     mode_release = false;
@@ -357,6 +371,25 @@ void program_time() {
     program_second_digit = minutes % 10;
   }
 
+  if(mode == MODE_TEST_BDAY) {
+    master_loop_break = false;
+    clear_leds();
+    write_leds();
+    rainbow_cycle(5);
+  }
+
+}
+
+void set_brightness() {
+  if (hours >= 22 || hours <= 6) {
+    analogWrite(OUTPUT_PIN, 200);
+    analogWrite(KLUKKAN_PIN, 45);
+    analogWrite(ER_PIN, 45);
+  } else {
+    analogWrite(OUTPUT_PIN, 127);
+    analogWrite(KLUKKAN_PIN, 122);
+    analogWrite(ER_PIN, 122);
+  }
 }
 
 void set_program_time_pins() {
@@ -364,7 +397,7 @@ void set_program_time_pins() {
 
   if(program_first_digit_display_time == 0) {
     program_first_digit_display_time = now;
-    Serial.println("first digit");
+    //Serial.println("first digit");
   }
   number_to_pin(program_first_digit);
 
@@ -372,7 +405,7 @@ void set_program_time_pins() {
 
     if(now - program_first_digit_display_time > PROGRAM_DIGIT_DISPLAY) {
       clear_leds();
-      Serial.println("in between");
+      //Serial.println("in between");
     }
 
     if(now - program_first_digit_display_time > PROGRAM_DIGIT_DISPLAY + PROGRAM_DIGIT_DISPLAY_INBETWEEN) {
@@ -382,11 +415,11 @@ void set_program_time_pins() {
       }
 
       number_to_pin(program_second_digit);
-      Serial.println("second digit");
+      //Serial.println("second digit");
 
       if(now - program_second_digit_display_time > PROGRAM_DIGIT_DISPLAY) {
         clear_leds();
-        Serial.println("after second");
+        //Serial.println("after second");
 
         if(now - program_second_digit_display_time > PROGRAM_DIGIT_DISPLAY + (PROGRAM_DIGIT_DISPLAY_INBETWEEN * 3.5)) {
           program_first_digit_display_time = 0;
