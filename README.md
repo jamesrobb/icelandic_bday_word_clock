@@ -1,10 +1,8 @@
 icelandic_bday_word_clock
 =========================
 
-This is the code for a home made word clock that displays the time in the icelandic language. 
+This is the code for a clock that displays the time as it would be spoken in the icelandic language using a grid of LEDs and a laser cut face with the appropriate letters.
 
-I borrowed some of the code, and a lot of the inspiration from the following github page and imgur gallery respectively:
-https://gist.github.com/buckeyeworldcitizen/d75351c4bf7498efc817
-http://imgur.com/a/iMXmj
+The current build is for a new design involving a circuit board of my own design where the neopixel LEDs are used for all the LEDs in place of just their use for the happy birthday message. This new code is still arduino compatible as I have mimicked an arduino setup on my circuit board.
 
-It is powered by an Arduino. That is all.... except this... and this... and finally this.
+Please check out the 0.1v for the software that worked with an arduino and shift registers along with the appropriate credits for the inspiration of that particular design.
