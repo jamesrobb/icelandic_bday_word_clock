@@ -19,8 +19,8 @@
 #define OUTPUT_PIN   11
 
 //manual PWM pins
-#define KLUKKAN_PIN 5
-#define ER_PIN 6
+#define KLUKKAN_PIN 6
+#define ER_PIN 5
 
 // the following are the pin definitons for the ground of the respective words
 #define HALF Display1=Display1 | (1<<1)
@@ -383,12 +383,12 @@ void program_time() {
 void set_brightness() {
   if (hours >= 22 || hours <= 6) {
     analogWrite(OUTPUT_PIN, 200);
-    analogWrite(KLUKKAN_PIN, 45);
-    analogWrite(ER_PIN, 45);
+    analogWrite(KLUKKAN_PIN, 90);
+    analogWrite(ER_PIN, 90);
   } else {
-    analogWrite(OUTPUT_PIN, 127);
-    analogWrite(KLUKKAN_PIN, 122);
-    analogWrite(ER_PIN, 122);
+    analogWrite(OUTPUT_PIN, 150);
+    analogWrite(KLUKKAN_PIN, 220);
+    analogWrite(ER_PIN, 220);
   }
 }
 
