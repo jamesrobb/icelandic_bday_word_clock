@@ -4,8 +4,8 @@ void rainbow_cycle(uint8_t wait) {
 
 	for(j = 0; j < 256*3; j++) {
 		
-		for(i = 0; i < bday_strip_size; i++) {
-			bday_strip.setPixelColor(i, wheel(((i * 256 / bday_strip_size) + j) & 255));
+		for(i = 0; i < NUM_BDAY_LEDS; i++) {
+			leds.setPixelColor(BDAY[i], wheel(((i * 256 / NUM_BDAY_LEDS) + j) & 255));
 			//delayMicroseconds(550);
 
 			// checks to see if break variable is set so we can exit and go into programming mode
@@ -17,7 +17,7 @@ void rainbow_cycle(uint8_t wait) {
 		}
 
 
-		bday_strip.show();
+		leds.show();
 		delay(wait);
 		
 		// possibly an unneccesary hack, allows time to update while this function is running
@@ -37,15 +37,15 @@ void theater_rainbow_chase(uint8_t wait) {
 
 		for (int q=0; q < 3; q++) {
 
-			for (int i=0; i < bday_strip.numPixels(); i=i+3) {
-				bday_strip.setPixelColor(i+q, wheel( (i+j) % 255)); //turn every third pixel on
+			for (int i=0; i < leds.numPixels(); i=i+3) {
+				leds.setPixelColor(i+q, wheel( (i+j) % 255)); //turn every third pixel on
 			}
 
-			bday_strip.show();
+			leds.show();
 			delay(wait);
 
-			for (int i=0; i < bday_strip.numPixels(); i=i+3) {
-				bday_strip.setPixelColor(i+q, 0); //turn every third pixel off
+			for (int i=0; i < leds.numPixels(); i=i+3) {
+				leds.setPixelColor(i+q, 0); //turn every third pixel off
 			}
 		}
 	}
@@ -54,25 +54,25 @@ void theater_rainbow_chase(uint8_t wait) {
 void clear_rainbow() {
 	uint16_t i;
 
-	for(i = 0; i < bday_strip_size; i++) {
-		bday_strip.setPixelColor(i, 0, 0, 0);
+	for(i = 0; i < NUM_BDAY_LEDS; i++) {
+		leds.setPixelColor(BDAY[i], 0, 0, 0);
 	}
 
-	bday_strip.show();
+	//eds.show();
 }
 
 uint32_t wheel(byte WheelPos) {
 	WheelPos = 255 - WheelPos;
 
 	if(WheelPos < 85) {
-		return bday_strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+		return leds.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
 	}
 	else if(WheelPos < 170) {
 		WheelPos -= 85;
-		return bday_strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+		return leds.Color(255 - WheelPos * 3, 0, WheelPos * 3);
 	}
 	else {
 		WheelPos -= 170;
-		return bday_strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+		return leds.Color(0, WheelPos * 3, 255 - WheelPos * 3);
 	}
 }
