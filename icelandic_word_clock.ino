@@ -23,29 +23,29 @@
 #define ER_PIN 5
 
 // the following are the pin definitons for the ground of the respective words
-#define HALF Display1=Display1 | (1<<1)
-#define YFIR Display1=Display1 | (1<<2) // not wired in right order
+#define HALF Display1=Display1 | (1<<5)
 #define H_TIU Display1=Display1 | (1<<3)
-#define TUTTUGU Display1=Display1 | (1<<4)
-#define OG Display1=Display1 | (1<<5)
-#define FIMMTAN Display1=Display1 | (1<<6)
-#define H_FIMM Display1=Display1 | (1<<7) 
+#define TUTTUGU Display1=Display1 | (1<<7)
+#define OG Display1=Display1 | (1<<4)
+#define FIMMTAN Display1=Display1 | (1<<2)
+#define H_FIMM Display1=Display1 | (1<<6)
+#define SEX Display1=Display1 | (1<<1)
 
-#define EITT Display2=Display2 | (1<<1)
-#define NIU Display2=Display2 | (1<<2)
-#define ATTA Display2=Display2 | (1<<3)
-#define THRJU Display2=Display2 | (1<<4)
-#define ELLEFU Display2=Display2 | (1<<5)
-#define MINUTUR Display2=Display2 | (1<<6) // not wired in right order
-#define IN Display2=Display2 | (1<<7)
+#define YFIR Display2=Display2 | (1<<2) // not wired in right order
+#define NIU Display2=Display2 | (1<<7)
+#define ATTA Display2=Display2 | (1<<1)
+#define THRJU Display2=Display2 | (1<<3)
+#define ELLEFU Display2=Display2 | (1<<4)
+#define MINUTUR Display2=Display2 | (1<<5) // not wired in right order
+#define IN Display2=Display2 | (1<<6)
 
-#define TVO Display3=Display3 | (1<<1)
-#define TOLF Display3=Display3 | (1<<2)
-#define SEX Display3=Display3 | (1<<3)
+#define TVO Display3=Display3 | (1<<2)
+#define TOLF Display3=Display3 | (1<<3)
 #define SJO Display3=Display3 | (1<<4)
 #define FJOGUR Display3=Display3 | (1<<5)
 #define L_FIMM Display3=Display3 | (1<<6)
 #define L_TIU Display3=Display3 | (1<<7)
+#define EITT Display3=Display3 | (1 << 1)
 
 #define MODE_OPERATE 0
 #define MODE_SET_YEAR 1
@@ -382,13 +382,14 @@ void program_time() {
 
 void set_brightness() {
   if (hours >= 22 || hours <= 6) {
-    analogWrite(OUTPUT_PIN, 200);
-    analogWrite(KLUKKAN_PIN, 90);
-    analogWrite(ER_PIN, 90);
+    analogWrite(OUTPUT_PIN, 220);
+    analogWrite(KLUKKAN_PIN, 30);
+    analogWrite(ER_PIN, 30);
+    
   } else {
-    analogWrite(OUTPUT_PIN, 150);
-    analogWrite(KLUKKAN_PIN, 220);
-    analogWrite(ER_PIN, 220);
+    analogWrite(OUTPUT_PIN, 10);
+    analogWrite(KLUKKAN_PIN, 240);
+    analogWrite(ER_PIN, 240);
   }
 }
 
@@ -560,7 +561,7 @@ void clear_leds() {
 }
 
 void word_test() {
-  int word_wait = 150;
+  int word_wait = 125;
 
   Serial.println("begin word test");
 
